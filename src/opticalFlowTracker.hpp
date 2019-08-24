@@ -1,4 +1,7 @@
 #pragma once
+#include <iostream>
+
+using namespace std;
 
 class ofTracker
 {
@@ -6,13 +9,39 @@ class ofTracker
 
     struct box
     {
-        float   x;
-        float   y;
-        float   w;
-        float   h;
+        int32_t   x;
+        int32_t   y;
+        int32_t   w;
+        int32_t   h;
+
         box(int32_t i_x = 0, int32_t i_y = 0, int32_t i_w = 0, int32_t i_h = 0):
         x(i_x), y(i_y), w(i_w), h(i_h) {};
+
        ~box() {};
+
+        box& operator=(const box& rhs)
+        {
+            this->x = rhs.x;
+            this->y = rhs.y;
+            this->w = rhs.w;
+            this->h = rhs.h;
+            return *this;
+        }
+
+        box& operator*(const float scale)
+        {
+            this->x = static_cast<int32_t>(static_cast<float>(this->x) * scale);
+            this->y = static_cast<int32_t>(static_cast<float>(this->y) * scale);
+            this->w = static_cast<int32_t>(static_cast<float>(this->w) * scale);
+            this->h = static_cast<int32_t>(static_cast<float>(this->h) * scale);
+            return *this;
+        }
+
+        friend ostream& operator<<(ostream& os, const box& ctx)
+        {
+            os << ctx.x << "," << ctx.y << ", " << ctx.w << "," << ctx.h;
+            return os;
+        }
     };
     
     struct image
@@ -30,7 +59,7 @@ class ofTracker
 
                   ofTracker(int32_t i_imgWidth, int32_t i_imgHeight);
                  ~ofTracker();
-    status_t      track();
+    status_t      track(box& inputBox);
 
     // private:
     static const     int32_t m_numPyramid = 4;
@@ -44,8 +73,7 @@ class ofTracker
     float*        m_frame1;
     image*        m_imgPyd0[m_numPyramid];
     image*        m_imgPyd1[m_numPyramid];
-    box*          m_boxPyd0[m_numPyramid];
-    box*          m_boxPyd1[m_numPyramid];
+    box*          m_boxPyd[m_numPyramid];
 
     status_t      f_convolution(float* src, float* dst, float* knl, int32_t kw, int32_t kh, int32_t w, int32_t h);
     float         f_sample(image& img, float x, float y);

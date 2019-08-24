@@ -49,8 +49,7 @@ m_imgHeight(i_imgHeight)
         m_imgPyd0[i] = new image(imgWidth, imgHeight);
         m_imgPyd1[i] = new image(imgWidth, imgHeight);
 
-        m_boxPyd0[i] = new box;
-        m_boxPyd1[i] = new box;
+        m_boxPyd[i] = new box;
     }
 }
 
@@ -62,8 +61,7 @@ ofTracker::~ofTracker()
     {
         if(m_imgPyd0[i] != nullptr) delete m_imgPyd0[i];
         if(m_imgPyd1[i] != nullptr) delete m_imgPyd1[i];
-        if(m_boxPyd0[i] != nullptr) delete m_boxPyd0[i];
-        if(m_boxPyd1[i] != nullptr) delete m_boxPyd1[i];
+        if(m_boxPyd[i] != nullptr) delete m_boxPyd[i];
     }
 }
 
@@ -157,11 +155,13 @@ ofTracker::status_t ofTracker::f_buildPyramid
     // ---------------------------------------------- //
     // gaussian filter kernel                         //
     // ---------------------------------------------- //
-    float knl[9] = {0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625};
+    float knl[9] = {0.0625, 0.125, 0.0625, \
+                    0.125,  0.25,  0.125,  \
+                    0.0625, 0.125, 0.0625  };
 
     // ---------------------------------------------- //
     // the bottom level is just a copy of input frame //
-    // the upper-4 level is down-scaled by 2 each     //
+    // the upper-3 level is down-scaled by 2 each     //
     // ---------------------------------------------- //
     for(int l = m_numPyramid - 1; l >= 0; l--)
     {
@@ -193,3 +193,13 @@ ofTracker::status_t ofTracker::f_buildPyramid
     return SUCCESS;
 }
 
+ofTracker::status_t ofTracker::track
+(
+    box&    inputBox
+)
+{
+    *(m_boxPyd[0]) = inputBox * 0.125f;
+    cout << *(m_boxPyd[0]) << endl;
+
+    return SUCCESS;
+}

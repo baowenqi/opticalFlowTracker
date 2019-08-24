@@ -24,6 +24,9 @@ int main(void)
     ofTracker tracker(fltFrame0.cols, fltFrame0.rows);
     tracker.f_buildPyramid(reinterpret_cast<float*>(fltFrame0.data), tracker.m_imgPyd0);
 
+    ofTracker::box inputBox(227, 207, 122, 99);
+    cout << inputBox << endl;
+    tracker.track(inputBox);
 
     for(int i = 3; i >= 0; i--)
     {
