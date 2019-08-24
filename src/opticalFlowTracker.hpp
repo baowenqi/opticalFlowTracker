@@ -48,9 +48,18 @@ class ofTracker
     {
         int32_t   w;
         int32_t   h;
+        int32_t   selfCreated;
         float*    data;
-        image(int32_t i_w, int32_t i_h) : w(i_w), h(i_h) { data = new float[w * h]; };
-       ~image() { if(data != nullptr) delete []data; };
+        image(int32_t i_w, int32_t i_h, float* i_data = nullptr) : w(i_w), h(i_h), data(i_data)
+        {
+            selfCreated = 0;
+            if(data == nullptr)
+            {
+                data = new float[w * h];
+                selfCreated = 1;
+            }
+        };
+       ~image() { if(data != nullptr && selfCreated) delete []data; };
     };
 
     float*        outW;
@@ -75,10 +84,10 @@ class ofTracker
     image*        m_imgPyd1[m_numPyramid];
     box*          m_boxPyd[m_numPyramid];
 
-    status_t      f_convolution(float* src, float* dst, float* knl, int32_t kw, int32_t kh, int32_t w, int32_t h);
+    status_t      f_convolution(const image& src, const image& knl, image& dst);
     float         f_sample(image& img, float x, float y);
 
     status_t      f_buildPyramid(float* frame, image* (&pyramid)[m_numPyramid]);
-    status_t      f_align(box& tmpBox);
+    status_t      f_align(image& tmpImg, image& tgtImg, box& tmpBox, box& tgtBox);
 };
 
