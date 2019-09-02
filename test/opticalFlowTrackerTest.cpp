@@ -28,6 +28,22 @@ int main(void)
     cout << inputBox << endl;
     tracker.track(inputBox);
 
+    ofTracker::matrix<float> a(2, 3);
+    a << 1, 2, 3,
+         4, 5, 6;
+
+    ofTracker::matrix<float> b(3, 2);
+    b << 1, 2,
+         3, 4,
+         5, 6;
+
+    ofTracker::matrix<float> c(2, 2);
+    c = a * b;
+
+    cout << a << endl;
+    cout << b << endl;
+    cout << c << endl;
+
     for(int i = 3; i >= 0; i--)
     {
         Mat_<float> testOut = Mat(tracker.m_imgPyd0[i]->h, tracker.m_imgPyd0[i]->w, CV_32F, tracker.m_imgPyd0[i]->data);

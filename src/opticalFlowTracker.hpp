@@ -62,6 +62,77 @@ class ofTracker
        ~image() { if(data != nullptr && selfCreated) delete []data; };
     };
 
+    template<typename T>
+    struct matrix
+    {
+        T*      data;
+        int32_t ptr;
+        int32_t rows;
+        int32_t cols;
+
+        matrix(int32_t i_rows, int32_t i_cols) :
+        rows(i_rows), cols(i_cols)
+        {
+            data = new T[rows * cols];
+            memset(data, 0, rows * cols * sizeof(T));
+        };
+
+       ~matrix(){ if(data != nullptr) delete []data; };
+
+        friend ostream& operator<<(ostream& os, const matrix& rhs)
+        {
+            for(int y = 0; y < rhs.rows; y++)
+            {
+                for(int x = 0; x < rhs.cols; x++)
+                {
+                    os << rhs.data[y * rhs.cols + x] << ", ";
+                }
+                os << endl;
+            }
+            return os;
+        }
+
+        matrix& operator<<(T rhs)
+        {
+            ptr = 0;
+
+            this->data[ptr++] = rhs;
+            return *this;
+        }
+
+        matrix& operator,(T rhs)
+        {
+            this->data[ptr++] = rhs;
+            return *this;
+        }
+
+        matrix& operator=(const matrix& rhs)
+        {
+            memcpy(this->data, rhs.data, this->rows * this->cols * sizeof(T));
+            this->ptr = rhs.ptr;
+            return *this;
+        }
+
+        matrix operator*(matrix& rhs)
+        {
+            matrix<T> result(this->rows, rhs.cols);
+
+            for(int r = 0; r < result.rows; r++)
+            {
+                for(int c = 0; c < result.cols; c++)
+                {
+                    for(int k = 0; k < this->cols; k++)
+                    {
+                        result.data[r * result.cols + c] += \
+                        (this->data)[r * this->cols + k] * \
+                        rhs.data[k * rhs.cols + c];
+                    }
+                }
+            }
+            return result;
+        }
+    };
+
     float*        outW;
     box           outBox;
     typedef enum  e_status {SUCCESS, ERROR} status_t;

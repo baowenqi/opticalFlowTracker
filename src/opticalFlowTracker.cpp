@@ -247,5 +247,17 @@ ofTracker::status_t ofTracker::f_align
     f_convolution(tmpImg, tmpImgGx, sobelImgX);
     f_convolution(tmpImg, tmpImgGy, sobelImgY);
 
+    // ----------------------------------------------- //
+    // STEP 4                                          //
+    // pre compute the Jacobian for given rect         //
+    // STEP 5                                          //
+    // compute the steepest descent images             //
+    // STEP 6                                          //
+    // compute the hessian matrix                      //
+    // accumulate to H                                 //
+    // compute the invert of H                         //
+    // ----------------------------------------------- //
+
+
     return SUCCESS;
 }
