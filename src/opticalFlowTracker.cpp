@@ -18,6 +18,7 @@ ofTracker::ofTracker
 m_imgWidth(i_imgWidth),
 m_imgHeight(i_imgHeight)
 {
+#if 0
     // ---------------------------------- //
     // allocate the warping matrix        //
     // in this example, we set the final  //
@@ -52,10 +53,12 @@ m_imgHeight(i_imgHeight)
 
         m_boxPyd[i] = new box;
     }
+#endif
 }
 
 ofTracker::~ofTracker()
 {
+#if 0
     if(outW != nullptr) delete []outW;
 
     for(int i = (m_numPyramid - 1); i >= 0; i--)
@@ -64,32 +67,33 @@ ofTracker::~ofTracker()
         if(m_imgPyd1[i] != nullptr) delete m_imgPyd1[i];
         if(m_boxPyd[i] != nullptr) delete m_boxPyd[i];
     }
+#endif
 }
 
 ofTracker::status_t ofTracker::f_convolution
 (
-    const image&    src,
-    const image&    knl,
-          image&    dst
+    const matrix<float>&    src,
+    const matrix<float>&    knl,
+          matrix<float>&    dst
 )
 {
-    assert(src.w == dst.w && src.h == dst.h);
+    assert(src.cols == dst.cols && src.rows == dst.rows);
 
-    int32_t kwRad = (knl.w >> 1);
-    int32_t khRad = (knl.h >> 1);
-    int32_t wPad = src.w + kwRad * 2;
-    int32_t hPad = src.h + khRad * 2;
+    int32_t kwRad = (knl.cols >> 1);
+    int32_t khRad = (knl.rows >> 1);
+    int32_t wPad = src.cols + kwRad * 2;
+    int32_t hPad = src.rows + khRad * 2;
 
     // ---------------------------------------------- //
     // pad the boundry of the src image with 0s       //
     // ---------------------------------------------- //
     float* srcPad = new float[wPad * hPad];
     memset(srcPad, 0, wPad * hPad * sizeof(float));
-    for(int y = 0; y < src.h; y++)
+    for(int y = 0; y < src.rows; y++)
     {
-        for(int x = 0; x < src.w; x++)
+        for(int x = 0; x < src.cols; x++)
         {
-            int srcAddr = y * src.w + x;
+            int srcAddr = y * src.cols + x;
             int padAddr = (y + khRad) * wPad + (x + kwRad);
             *(srcPad + padAddr) = *(src.data + srcAddr);
         }
@@ -98,16 +102,16 @@ ofTracker::status_t ofTracker::f_convolution
     // ---------------------------------------------- //
     // convolve the srcPad with knl                   //
     // ---------------------------------------------- //
-    for(int y = 0; y < dst.h; y++)
+    for(int y = 0; y < dst.rows; y++)
     {
-        for(int x = 0; x < dst.w; x++)
+        for(int x = 0; x < dst.cols; x++)
         {
             float result = 0.0f;
-            for(int v = 0; v < knl.h; v++)
+            for(int v = 0; v < knl.rows; v++)
             {
-                for(int u = 0; u < knl.w; u++)
+                for(int u = 0; u < knl.cols; u++)
                 {
-                    int knlAddr = v * knl.w + u;
+                    int knlAddr = v * knl.cols + u;
                     int srcAddr = (y + v) * wPad + (x + u);
                     
                     float knlData = *(knl.data + knlAddr);
@@ -115,7 +119,7 @@ ofTracker::status_t ofTracker::f_convolution
                     result += srcData * knlData;
                 }
             }
-            int dstAddr = y * dst.w + x;
+            int dstAddr = y * dst.cols + x;
             *(dst.data + dstAddr) = result;
         }
     }
@@ -124,34 +128,7 @@ ofTracker::status_t ofTracker::f_convolution
     return SUCCESS;
 }
 
-float ofTracker::f_sample
-(
-    image&    img,
-    float     x,
-    float     y
-)
-{
-    int ix = static_cast<int>(floor(x));
-    int iy = static_cast<int>(floor(y));
-
-    float result = 0.0f;
-
-    if(ix >= 0 && ix < img.w - 1 && iy >= 0 && iy < img.h - 1)
-    {
-        float d0 = *(img.data + (iy + 0) * img.w + (ix + 0));
-        float d1 = *(img.data + (iy + 0) * img.w + (ix + 1));
-        float d2 = *(img.data + (iy + 1) * img.w + (ix + 0));
-        float d3 = *(img.data + (iy + 1) * img.w + (ix + 1));
-
-        float a = x - ix;
-        float b = y - iy;
-
-        result = (d0 * (1 - a) + d1 * a) * (1 - b) + (d2 * (1 - a) + d3 * a) * b;
-    }
-
-    return result;
-}
-
+#if 0
 ofTracker::status_t ofTracker::f_buildPyramid
 (
     float* frame, 
@@ -199,6 +176,7 @@ ofTracker::status_t ofTracker::f_buildPyramid
 
     return SUCCESS;
 }
+#endif
 
 ofTracker::status_t ofTracker::track
 (
@@ -213,10 +191,10 @@ ofTracker::status_t ofTracker::track
 
 ofTracker::status_t ofTracker::f_align
 (
-    image&    tmpImg,
-    image&    tgtImg,
-    box&      tmpBox,
-    box&      tgtBox
+    matrix<float>&   tmpImg,
+    matrix<float>&   tgtImg,
+    box&             tmpBox,
+    box&             tgtBox
 )
 {
     // ----------------------------------------------- //
@@ -239,16 +217,19 @@ ofTracker::status_t ofTracker::f_align
     // compute the gradient of template image          //
     // we use sobel filter here                        //
     // ----------------------------------------------- //
-    float sobelX[9] = {-1,  0,  1, -2, 0, 2, -1, 0, 1};
-    float sobelY[9] = {-1, -2, -1,  0, 0, 0,  1, 2, 1};
-    image sobelImgX(3, 3, sobelX);
-    image sobelImgY(3, 3, sobelY);
+    matrix<float> sobelX(3, 3, {-1,  0,  1,
+                                -2,  0,  2,
+                                -1,  0,  1});
 
-    image tmpImgGx(tmpImg.w, tmpImg.h);
-    image tmpImgGy(tmpImg.w, tmpImg.h);
+    matrix<float> sobelY(3, 3, {-1, -2, -1,
+                                 0,  0,  0,
+                                 1,  2,  1});
 
-    f_convolution(tmpImg, sobelImgX, tmpImgGx);
-    f_convolution(tmpImg, sobelImgY, tmpImgGy);
+    matrix<float> tmpImgGx(tmpImg.rows, tmpImg.cols);
+    matrix<float> tmpImgGy(tmpImg.rows, tmpImg.cols);
+
+    f_convolution(tmpImg, sobelX, tmpImgGx);
+    f_convolution(tmpImg, sobelY, tmpImgGy);
 
     // ----------------------------------------------- //
     // STEP 4                                          //

@@ -43,40 +43,6 @@ class ofTracker
             return os;
         }
     };
-    
-    struct image
-    {
-        int32_t   w;
-        int32_t   h;
-        float*    data;
-        image(int32_t i_w, int32_t i_h, float* i_data = nullptr) : w(i_w), h(i_h)
-        {
-            data = new float[w * h];
-            if(i_data != nullptr) memcpy(data, i_data, w * h * sizeof(float));
-        };
-       ~image() { if(data != nullptr) delete []data; };
-
-       float at(int32_t y, int32_t x)
-       {
-           return data[y * w + x];
-       }
-
-       float at(float y, float x)
-       {
-           int ix = static_cast<int>(floor(x));
-           int iy = static_cast<int>(floor(y));
-           
-           float d0 = data[iy * w + ix];
-           float d1 = data[iy * w + ix + 1];
-           float d2 = data[(iy + 1) * w + ix];
-           float d3 = data[(iy + 1) * w + ix + 1];
-           
-           float a = x - ix;
-           float b = y - iy;
-           
-           return (d0 * (1 - a) + d1 * a) * (1 - b) + (d2 * (1 - a) + d3 * a) * b;
-       }
-    };
 
     template<typename T>
     struct matrix
@@ -86,11 +52,13 @@ class ofTracker
         int32_t rows;
         int32_t cols;
 
-        matrix(int32_t i_rows, int32_t i_cols) :
+        matrix(int32_t i_rows, int32_t i_cols, const T* i_data = nullptr) :
         rows(i_rows), cols(i_cols)
         {
             data = new T[rows * cols];
-            memset(data, 0, rows * cols * sizeof(T));
+
+            if(i_data != nullptr) memcpy(data, i_data, rows * cols * sizeof(T));
+            else                  memset(data, 0, rows * cols * sizeof(T));
         };
 
         matrix(int32_t i_rows, int32_t i_cols, const initializer_list<T>& init) :
@@ -164,7 +132,7 @@ class ofTracker
             return data[y * cols + x];
         }
 
-        T& at(float y, float x)
+        T at(float y, float x)
         {
             int ix = static_cast<int>(floor(x));
             int iy = static_cast<int>(floor(y));
@@ -300,18 +268,17 @@ class ofTracker
     static constexpr float   m_cvgEpsilon = 1e-6;
     static const     int32_t m_dof        = 3;
 
-    int32_t       m_imgWidth;
-    int32_t       m_imgHeight;
-    float*        m_frame0;
-    float*        m_frame1;
-    image*        m_imgPyd0[m_numPyramid];
-    image*        m_imgPyd1[m_numPyramid];
-    box*          m_boxPyd[m_numPyramid];
+    int32_t           m_imgWidth;
+    int32_t           m_imgHeight;
+    float*            m_frame0;
+    float*            m_frame1;
+    matrix<float>*    m_imgPyd0[m_numPyramid];
+    matrix<float>*    m_imgPyd1[m_numPyramid];
+    box*              m_boxPyd[m_numPyramid];
 
-    status_t      f_convolution(const image& src, const image& knl, image& dst);
-    float         f_sample(image& img, float x, float y);
+    status_t      f_convolution(const matrix<float>& src, const matrix<float>& knl, matrix<float>& dst);
 
-    status_t      f_buildPyramid(float* frame, image* (&pyramid)[m_numPyramid]);
-    status_t      f_align(image& tmpImg, image& tgtImg, box& tmpBox, box& tgtBox);
+    // status_t      f_buildPyramid(float* frame, image* (&pyramid)[m_numPyramid]);
+    status_t      f_align(matrix<float>& tmpImg, matrix<float>& tgtImg, box& tmpBox, box& tgtBox);
 };
 

@@ -29,15 +29,15 @@ int main(void)
     waitKey(0);
 #endif
     ofTracker tracker(fltFrame0.cols, fltFrame0.rows);
-    tracker.f_buildPyramid(reinterpret_cast<float*>(fltFrame0.data), tracker.m_imgPyd0);
+    // tracker.f_buildPyramid(reinterpret_cast<float*>(fltFrame0.data), tracker.m_imgPyd0);
 
     ofTracker::box inputBox(227, 207, 122, 99);
     // ofTracker::box outputBox();
     // cout << inputBox << endl;
     // tracker.track(inputBox);
 
-    ofTracker::image tmpImg(fltFrame0.cols, fltFrame0.rows, reinterpret_cast<float*>(fltFrame0.data));
-    ofTracker::image tgtImg(fltFrame1.cols, fltFrame1.rows, reinterpret_cast<float*>(fltFrame1.data));
+    ofTracker::matrix<float> tmpImg(fltFrame0.rows, fltFrame0.cols, reinterpret_cast<float*>(fltFrame0.data));
+    ofTracker::matrix<float> tgtImg(fltFrame1.rows, fltFrame1.cols, reinterpret_cast<float*>(fltFrame1.data));
 
     tracker.f_align(tmpImg, tgtImg, inputBox, inputBox);
 #if 0
