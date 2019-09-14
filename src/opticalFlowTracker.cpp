@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <list>
 #include <algorithm>
 #include <iostream>
 #include <sys/time.h>
@@ -224,12 +225,15 @@ ofTracker::status_t ofTracker::f_align
     // 1+s, 0,   b1,                                   //
     // 0,   1+s, b2                                    //
     // ----------------------------------------------- //
-    float W[2][3] = {{1, 0, 0}, {0, 1, 0}};
+    matrix<float> W(2, 3);
+    W << 1, 0, 0,
+         0, 1, 0;
 
     // ----------------------------------------------- //
     // initial the hessian matrix                      //
     // ----------------------------------------------- //
-    float H[3][3] = {0};
+    matrix<float> H(3, 3);
+    matrix<float> invH(3, 3);
 
     // ----------------------------------------------- //
     // STEP 3                                          //
@@ -244,8 +248,8 @@ ofTracker::status_t ofTracker::f_align
     image tmpImgGx(tmpImg.w, tmpImg.h);
     image tmpImgGy(tmpImg.w, tmpImg.h);
 
-    f_convolution(tmpImg, tmpImgGx, sobelImgX);
-    f_convolution(tmpImg, tmpImgGy, sobelImgY);
+    f_convolution(tmpImg, sobelImgX, tmpImgGx);
+    f_convolution(tmpImg, sobelImgY, tmpImgGy);
 
     // ----------------------------------------------- //
     // STEP 4                                          //
@@ -255,9 +259,103 @@ ofTracker::status_t ofTracker::f_align
     // STEP 6                                          //
     // compute the hessian matrix                      //
     // accumulate to H                                 //
-    // compute the invert of H                         //
+    // compute the inverse of H                        //
     // ----------------------------------------------- //
+    matrix<float>* sdiTArray[tmpBox.h][tmpBox.w];
 
+    for(int v = 0; v < tmpBox.h; v++)
+    {
+        for(int u = 0; u < tmpBox.w; u++)
+        {
+            matrix<float> jacobian(2, 3), gradient(1, 2), sdi(1, 3), sdiT(3, 1), h(3, 3);
+
+            jacobian << u, 1, 0,
+                        v, 0, 1;
+
+            float gx = tmpImgGx.at(tmpBox.y + v, tmpBox.x + u);
+            float gy = tmpImgGy.at(tmpBox.y + v, tmpBox.x + u);
+
+            gradient << gx, gy;
+
+            sdi = gradient * jacobian;
+
+            sdiT = sdi.transpose();
+
+            h = sdiT * sdi;
+            
+            H += h;
+            
+            sdiTArray[v][u] = new matrix<float>(3, 1);
+            *(sdiTArray[v][u]) = sdiT;
+        }
+    }
+    invH = H.inverse();
+
+    // --------------------------------------------------- //
+    // iterating...                                        //
+    // --------------------------------------------------- //
+    for(int i = 0; i < 500; i++)
+    {
+        // ----------------------------------------------- //
+        // initial the error-weigthed sdi                  //
+        // ----------------------------------------------- //
+        matrix<float> S(3, 1);
+
+        for(int v = 0; v < tmpBox.h; v++)
+        {
+            for(int u = 0; u < tmpBox.w; u++)
+            {
+                // ----------------------------------------------- //
+                // STEP 1                                          //
+                // compute the warp image                          //
+                // STEP 2                                          //
+                // compute the error image                         //
+                // ----------------------------------------------- //
+                matrix<float> x(3, 1);
+                x << u, v, 1;
+
+                matrix<float> wx = W * x;
+                float uw = wx.data[0];
+                float vw = wx.data[1];
+
+                float tgtData = tgtImg.at(tmpBox.y + vw, tmpBox.x + uw);
+                float tmpData = tmpImg.at(tmpBox.y + v,  tmpBox.x + u );
+                float error = tgtData - tmpData;
+
+                // --------------------------------------- //
+                // STEP 7                                  //
+                // aggregate the error-weigthed sdi        //
+                // --------------------------------------- //
+                matrix<float> sdiT = *(sdiTArray[v][u]);
+                matrix<float> s = sdiT * error;
+
+                S += s;
+            }
+        }
+        // ----------------------------------------------- //
+        // STEP 8                                          //
+        // solve the delta p                               //
+        // ----------------------------------------------- //
+        matrix<float> deltaP(3, 1);
+        deltaP = invH * S;
+
+        // ----------------------------------------------- //
+        // STEP 9                                          //
+        // and update warping matrix (ic)                  //
+        // ----------------------------------------------- //
+        float deltaS  = deltaP.data[0];
+        float deltaB1 = deltaP.data[1];
+        float deltaB2 = deltaP.data[2];
+
+        W.data[0] /= (1 + deltaS);
+        W.data[4]  = W.data[0];
+        W.data[2] -= W.data[0] * deltaB1;
+        W.data[5] -= W.data[0] * deltaB2;
+
+        cout << "----" << i << "----" << endl;
+        cout << deltaP << endl;
+    }
+    cout << W << endl;
 
     return SUCCESS;
 }
