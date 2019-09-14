@@ -93,6 +93,15 @@ class ofTracker
             memset(data, 0, rows * cols * sizeof(T));
         };
 
+        matrix(int32_t i_rows, int32_t i_cols, const initializer_list<T>& init) :
+        rows(i_rows), cols(i_cols)
+        {
+            data = new T[rows * cols];
+
+            int32_t i = 0;
+            for(auto it = init.begin(); it != init.end(); it++, i++) *(data + i) = *(it);
+        };
+
         matrix(const matrix& rhs)
         {
             rows = rhs.rows;
@@ -135,6 +144,40 @@ class ofTracker
             memcpy(this->data, rhs.data, this->rows * this->cols * sizeof(T));
             this->ptr = rhs.ptr;
             return *this;
+        }
+
+        matrix& operator=(const initializer_list<T>& rhs)
+        {
+            int32_t i = 0;
+            for(auto it = rhs.begin(); it != rhs.end(); ++it) *(this->data + i++) = *(it);
+
+            return *this;
+        }
+
+        T& at(int32_t idx)
+        {
+            return data[idx];
+        }
+
+        T& at(int32_t y, int32_t x)
+        {
+            return data[y * cols + x];
+        }
+
+        T& at(float y, float x)
+        {
+            int ix = static_cast<int>(floor(x));
+            int iy = static_cast<int>(floor(y));
+            
+            T d0 = data[iy * cols + ix];
+            T d1 = data[iy * cols + ix + 1];
+            T d2 = data[(iy + 1) * cols + ix];
+            T d3 = data[(iy + 1) * cols + ix + 1];
+            
+            float a = x - ix;
+            float b = y - iy;
+            
+            return (d0 * (1 - a) + d1 * a) * (1 - b) + (d2 * (1 - a) + d3 * a) * b;
         }
 
         matrix& operator+=(const matrix& rhs)
